@@ -50,7 +50,7 @@ function mainMenu() {
                 return;
 
             case 'View all roles':
-                query = 'SELECT Roles.role_id, Roles.job_title, Roles.salary, Departments.department_name FROM Roles JOIN Departments ON Roles.department_id = Departments.department_id';
+                query = 'SELECT Roles.job_title, Roles.role_id, Departments.department_name, Roles.salary FROM Roles JOIN Departments';
                 connection.query(query, function(err, results) {
                     if (err) throw err;
                     console.table(results);
@@ -59,7 +59,7 @@ function mainMenu() {
                 return;
                 
             case 'View all employees':
-                query = 'SELECT * FROM Employees';
+                query = 'SELECT Employees.employee_id, Employees.first_name, Employees.last_name, Roles.job_title, Departments.department_name, Roles.salary FROM Employees JOIN Roles, Departments';
                 connection.query(query, function(err, results) {
                     if (err) throw err;
                     console.table(results);
@@ -90,34 +90,34 @@ function mainMenu() {
 
 
                 case 'Add a role': 
-                    // Fetch all department names and IDs from the database
-                    connection.query('SELECT * FROM Departments', function(err, departments) {
+                    // Fetch the list of departments
+                    connection.query('SELECT department_id, department_name FROM Departments', function(err, departments) {
                         if (err) throw err;
-                        
-                        // Create an array of department choices with IDs
+
+                        // Create an array of department choices with IDs and names
                         const departmentChoices = departments.map(department => ({
-                        name: department.department_name,
-                        value: department.department_id,
+                            name: `${department.department_name} (ID: ${department.department_id})`,
+                            value: department.department_id
                         }));
-                        
+
                         // Show Inquirer prompt with dynamically populated choices
                         inquirer
                         .prompt([
                             {
-                            type: 'input',
-                            name: 'roleTitle',
-                            message: 'What is the title of the new role?',
+                                type: 'input',
+                                name: 'roleTitle',
+                                message: 'What is the title of the new role?',
                             },
                             {
-                            type: 'input',
-                            name: 'roleSalary',
-                            message: 'What is the salary of the new role?',
+                                type: 'input',
+                                name: 'roleSalary',
+                                message: 'What is the salary of the new role?',
                             },
                             {
-                            type: 'list',
-                            name: 'departmentId',
-                            message: 'What is the department ID of the new role?',
-                            choices: departmentChoices  // Updated this line
+                                type: 'list',
+                                name: 'departmentId',
+                                message: 'Which department does this role belong to?',
+                                choices: departmentChoices
                             }
                         ])
                         .then((answer) => {
@@ -131,36 +131,48 @@ function mainMenu() {
                             });
                         });
                     });
-                    return;
+                return;
 
                   
-            case 'Add an employee':
-                inquirer
-                .prompt([
-                    {
-                      type: 'input',
-                      name: 'firstName',
-                      message: 'What is the first name of the new employee?',
-                    },
-                    {
-                      type: 'input',
-                      name: 'lastName',
-                      message: 'What is the last name of the new employee?',
-                    },
-                    {
-                      type: 'input',
-                      name: 'assignedRole',
-                      message: 'What is the role of the new employee?',
-                    }
-                  ])
-                  .then((answer) => {
-                    const query = 'INSERT INTO Employees (first_name, last_name, role_id) VALUES (?, ?, ?)';
-                    connection.query(query, [answer.firstName, answer.lastName, answer.assignedRole], function(err, results) {
-                      if (err) throw err;
-                      console.log(`Added a new employee his name is ${answer.firstName} ${answer.roleSalary} and was assigned ${answer.departmentId} role`);
-                      mainMenu();
+                case 'Add an employee':
+                    // Fetch the list of departments
+                    connection.query('SELECT role_id, job_title FROM Roles', function(err, roles) {
+                        if (err) throw err;
+
+                        // Create an array of department choices with IDs and names
+                        const roleChoices = roles.map(role => ({
+                            name: `${role.job_title} (ID: ${role.role_id})`,
+                            value: role.role_id
+                        }));
+
+                        inquirer
+                        .prompt([
+                            {
+                            type: 'input',
+                            name: 'firstName',
+                            message: 'What is the first name of the new employee?',
+                            },
+                            {
+                            type: 'input',
+                            name: 'lastName',
+                            message: 'What is the last name of the new employee?',
+                            },
+                            {
+                            type: 'list',
+                            name: 'assignedRole',
+                            message: 'What is the role of the new employee?',
+                            choices: roleChoices
+                            }
+                        ])
+                        .then((answer) => {
+                            const query = 'INSERT INTO Employees (first_name, last_name, role_id) VALUES (?, ?, ?)';
+                            connection.query(query, [answer.firstName, answer.lastName, answer.assignedRole], function(err, results) {
+                            if (err) throw err;
+                            console.log(`Added a new employee his name is ${answer.firstName} ${answer.roleSalary} and was assigned ${answer.assignedRole} role`);
+                            mainMenu();
+                            });
+                        });
                     });
-                  });
                 return;
 
             case 'Update an employee role':
